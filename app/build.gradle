@@ -1,0 +1,73 @@
+apply plugin: 'com.android.application'
+
+def config = rootProject.ext.android;
+def libraries = rootProject.ext.dependencies;
+
+android {
+    compileSdkVersion config.compileSdkVersion
+    buildToolsVersion config.buildToolsVersion
+    defaultConfig {
+        applicationId "com.malin.code"
+        minSdkVersion config.minSdkVersion
+        targetSdkVersion config.targetSdkVersion
+        versionCode config.versionCode
+        versionName config.versionName
+        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+    }
+    signingConfigs {
+        File signPropertiesFile = rootProject.file('sign/keystore.properties')
+        Properties properties = new Properties()
+        properties.load(new FileInputStream(signPropertiesFile))
+        release {
+            storeFile rootProject.file(properties['keystore'])
+            storePassword properties['storePassword']
+            keyAlias properties['keyAlias']
+            keyPassword properties['keyPassword']
+            //在apk文件后边生成版本号信息
+            android.applicationVariants.all {
+                variant ->
+                    variant.outputs.each {
+                        output -> output.outputFile = new File(output.outputFile.parent, "malin_" + buildType.name + "_v" + defaultConfig.versionName + "_${releaseTime()}.apk");
+                    }
+            }
+        }
+        debug {
+            android.applicationVariants.all {
+                variant ->
+                    variant.outputs.each {
+                        output -> output.outputFile = new File(output.outputFile.parent, "malin_" + buildType.name + "_v" + defaultConfig.versionName + "_${releaseTime()}.apk");
+                    }
+            }
+        }
+
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled true
+            zipAlignEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.release
+        }
+        debug {
+            versionNameSuffix "_debug"
+            minifyEnabled false
+            zipAlignEnabled false
+            signingConfig signingConfigs.debug
+        }
+    }
+}
+def releaseTime() {
+    return new Date().format("yyyyMMdd", TimeZone.getTimeZone("UTC"))
+}
+
+dependencies {
+    compile fileTree(include: ['*.jar'], dir: 'libs')
+    androidTestCompile('com.android.support.test.espresso:espresso-core:2.2.2', {
+        exclude group: 'com.android.support', module: 'support-annotations'
+    })
+    compile "com.android.support:appcompat-v7:${libraries.supportVersion}"
+    compile "com.android.support.constraint:constraint-layout:1.0.2"
+    compile "com.android.support:design:${libraries.supportVersion}"
+    testCompile "junit:junit:4.12"
+}
